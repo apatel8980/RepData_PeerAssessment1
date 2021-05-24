@@ -1,25 +1,123 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible research - Assignment 1"
+author: "ap8980"
+date: "24/05/2021"
+output: html_document
 ---
 
-
 ## Loading and preprocessing the data
+#import data
+#create new data set with removed NA values
+#turn date from char to date class
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+activity <- read.csv("activity.csv")
+activity_one <- activity %>% drop_na()
+activity_one <- activity_one %>% mutate(date = ymd(date))
+
+```
+
+### What is mean total number of steps taken per day?
+#calculate mean daily steps
+
+```{r, echo = TRUE}
+mean_steps <- activity_one %>% 
+group_by(date) %>%
+summarise(steps = sum(steps))
+
+mean_steps
 
 
+```
 
-## What is mean total number of steps taken per day?
+### What is the average daily activity pattern?
+```{r , echo=TRUE}
+mean_hist_steps <- ggplot(data = mean_steps)+
+    geom_histogram(mapping = aes( x = steps))+
+    scale_x_continuous(breaks = seq(0,30000, by = 2000))+
+    scale_y_continuous(breaks = seq(0,10, by = 1))+
+    ggtitle("Steps per day")
+
+mean_hist_steps
+
+```
+```{r, echo = TRUE}
+mean(mean_steps$steps)
+
+median(mean_steps$steps)
+
+#average number of steps by intervals
+#create new table by intervals
+intervals <- activity_one %>%
+group_by(interval) %>%
+summarise(steps = mean(steps))
+
+```
+```{r, echo = TRUE}
+#create line chart
+ggplot(data = intervals)+
+    geom_line(mapping = aes(x = interval, y = steps))+
+    scale_x_continuous(breaks = seq(0,2500, by = 200))
+
+```
+
+#interval with max number of steps
+```{r, echo = TRUE}
+#interval with max number of steps
+intervals %>% arrange(desc(steps)) %>% slice_head()
+```
+### Imputing missing values
+```{r}
+#sum total NA rows
+sum(is.na(activity))
+
+#fill in missing values (use mean)
+activity_complete <- activity
+nas <- is.na(activity_complete$steps)
+avg_interval <- tapply(activity_complete$steps, activity_complete$interval, mean, na.rm=TRUE, simplify=TRUE)
+activity_complete$steps[nas] <- avg_interval[as.character(activity_complete$interval[nas])]
+
+#activity complete - new dataset with mean values imputed
+steps_complete <- activity_complete %>% 
+group_by(date) %>%
+summarise(steps = sum(steps))
+```
+```{r}
+#new histogram
+ggplot(data = steps_complete)+
+    geom_histogram(mapping = aes( x = steps))+
+   scale_x_continuous(breaks = seq(0,30000, by = 2000))+
+  scale_y_continuous(breaks = seq(0,10, by = 1))+
+ ggtitle("Steps per day with imputed values")
+
+```
+```{r, echo = TRUE}
+#new mean
+mean(steps_complete$steps)
+
+#new median
+median(steps_complete$steps)
+```
+### Are there differences in activity patterns between weekdays and weekends?
+```{r}
+#weekday activity
+activity_final <- activity_complete %>% mutate(wday(activity_complete$date, label = TRUE))
+#rename column
+activity_final<- activity_final %>% rename(weekday = `wday(activity_complete$date, label = TRUE)`)
+
+#summarise pre plot
+interval_final <- activity_final %>%
+group_by(interval,weekday) %>%
+summarise(steps = mean(steps))
+```
+```{r}
+#ggplot via day of week
+ggplot(interval_final, aes(x=interval, y=steps, color = weekday)) +
+geom_line() +
+facet_wrap(~weekday)+
+  ggtitle("Activity comparison weekend vs weekdays")
+```
 
 
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
